@@ -43,7 +43,7 @@ app.get('/api/geoip', async (req, res) => {
 
 });
 
-const port = 3011;
+const port = 6008;
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
