@@ -1,29 +1,29 @@
 const express = require('express');
 const geoip = require('geoip-lite');
-const axios = require('axios');
+const fetch = require('node-fetch'); // Import the node-fetch module to use fetch in Node.js
 const cheerio = require('cheerio');
 const app = express();
 
-// Slug-to-URL mapping
 const slugToUrlMapping = {
     'example': 'https://example.com',
     'google': 'https://www.google.com',
 };
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-const fetchMetadata = async (url, retries = 3) => {
+const fetchMetadata = async (url) => {
     try {
-        // Make the HTTP request to fetch the metadata
-        const response = await axios.get(url, {
+        const response = await fetch(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
             },
         });
 
-        const $ = cheerio.load(response.data);
+        if (!response.ok) {
+            throw new Error('Failed to fetch URL');
+        }
 
-        // Extract meta title and image
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
         const title = $('meta[property="og:title"]').attr('content') || $('title').text();
         const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content');
 
@@ -32,13 +32,6 @@ const fetchMetadata = async (url, retries = 3) => {
             image: image || 'No image found'
         };
     } catch (error) {
-        if (error.response && error.response.status === 429 && retries > 0) {
-            // If we get a 429 error, retry after waiting for a few seconds
-            console.log('Rate limit exceeded. Retrying...');
-            await delay(5000); // Wait 5 seconds before retrying
-            return fetchMetadata(url, retries - 1);  // Retry the request
-        }
-
         console.error('Error fetching metadata:', error);
         return {
             title: 'Error fetching title',
@@ -47,34 +40,27 @@ const fetchMetadata = async (url, retries = 3) => {
     }
 };
 
-
-// Route to handle requests for each slug
 app.get('/:slug', async (req, res) => {
     try {
         const slug = req.params.slug;
 
-        // Get IP address from request headers
         const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).split(',')[0];
         console.log(ip, "klklklk");
 
-        // Lookup geolocation data
         const geoData = geoip.lookup(ip);
 
         if (!geoData) {
             return res.status(404).json({ error: 'Geolocation data not found' });
         }
 
-        // Get the URL associated with the slug
         const url = slugToUrlMapping[slug];
 
         if (!url) {
             return res.status(404).json({ error: 'URL not found for the slug' });
         }
 
-        // Fetch metadata (title and thumbnail image)
         const metadata = await fetchMetadata(url);
 
-        // Return the JSON response
         res.json({
             ip: ip,
             country: geoData.country || null,
