@@ -1,6 +1,6 @@
 const express = require('express');
 const geoip = require('geoip-lite');
-const { getMetadata } = require('url-metadata'); 
+const urlMetadata = require('url-metadata');
 const app = express();
 
 let fetch;
@@ -16,7 +16,9 @@ const slugToUrlMapping = {
 const fetchMetadata = async (url) => {
     try {
         // Fetch metadata using url-metadata
-        const metadata = await getMetadata(url);
+        const metadata = await urlMetadata(url);
+
+        console.log(metadata,"lklklklklkl")
 
         // Extract title and image from metadata
         const title = metadata.ogTitle || metadata.title || 'No title found';
