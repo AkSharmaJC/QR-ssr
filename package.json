@@ -12,6 +12,7 @@
     "axios": "^1.8.1",
     "cheerio": "^1.0.0",
     "express": "^4.21.2",
-    "maxmind": "^4.3.24"
+    "maxmind": "^4.3.24",
+    "puppeteer": "^24.3.1"
   }
 }

@@ -1,7 +1,7 @@
 const express = require('express');
 const geoip = require('geoip-lite');
-const axios = require('axios'); 
-const cheerio = require('cheerio');
+const puppeteer = require('puppeteer');
+
 const app = express();
 
 const slugToUrlMapping = {
@@ -9,32 +9,26 @@ const slugToUrlMapping = {
     'google': 'https://www.google.com',
 };
 
-// Function to fetch metadata from a URL (title and image)
 const fetchMetadata = async (url) => {
     try {
-        const response = await axios.get(url);
-        const $ = cheerio.load(response.data);
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-        // Extract meta title
-        const title = $('meta[property="og:title"]').attr('content') || $('title').text();
+        const metadata = await page.evaluate(() => {
+            const title = document.querySelector('meta[property="og:title"]')?.content || document.title;
+            const image = document.querySelector('meta[property="og:image"]')?.content || null;
+            return { title, image };
+        });
 
-        // Extract meta image
-        const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content');
-
-        return {
-            title: title || 'No title found',
-            image: image || 'No image found'
-        };
+        await browser.close();
+        return metadata;
     } catch (error) {
-        console.error('Error fetching metadata:', error);
-        return {
-            title: 'Error fetching title',
-            image: null
-        };
+        console.error('Error fetching metadata using Puppeteer:', error);
+        return { title: 'Error fetching title', image: null };
     }
 };
 
-// Route to handle requests for each slug
 app.get('/:slug', async (req, res) => {
     try {
         const slug = req.params.slug;
@@ -66,7 +60,7 @@ app.get('/:slug', async (req, res) => {
             timezone: geoData.timezone || null,
             continent: geoData.continent || null,
             url: url,
-            title: metadata.title,  // Include the meta title
+            title: metadata.title,
             thumbnail: metadata.image,  // Include the meta image (thumbnail)
         });
     } catch (error) {
