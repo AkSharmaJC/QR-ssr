@@ -1,10 +1,8 @@
-// Replace the 'require' statement with a dynamic import for node-fetch
 const express = require('express');
 const geoip = require('geoip-lite');
-const cheerio = require('cheerio');
+const { getMetadata } = require('url-metadata'); 
 const app = express();
 
-// Use dynamic import() for node-fetch
 let fetch;
 (async () => {
     fetch = (await import('node-fetch')).default;
@@ -17,25 +15,16 @@ const slugToUrlMapping = {
 
 const fetchMetadata = async (url) => {
     try {
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-            },
-        });
+        // Fetch metadata using url-metadata
+        const metadata = await getMetadata(url);
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch URL');
-        }
-
-        const html = await response.text();
-        const $ = cheerio.load(html);
-
-        const title = $('meta[property="og:title"]').attr('content') || $('title').text();
-        const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content');
+        // Extract title and image from metadata
+        const title = metadata.ogTitle || metadata.title || 'No title found';
+        const image = metadata.ogImage || metadata.twitterImage || 'No image found';
 
         return {
-            title: title || 'No title found',
-            image: image || 'No image found'
+            title,
+            image
         };
     } catch (error) {
         console.error('Error fetching metadata:', error);
