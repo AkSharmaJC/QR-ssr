@@ -10,10 +10,11 @@ const slugToUrlMapping = {
     'google': 'https://www.google.com',
 };
 
-// Function to fetch metadata from a URL (title and image)
-const fetchMetadata = async (url) => {
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const fetchMetadata = async (url, retries = 3) => {
     try {
-        // Make the HTTP request to the URL
+        // Make the HTTP request to fetch the metadata
         const response = await axios.get(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
@@ -22,10 +23,8 @@ const fetchMetadata = async (url) => {
 
         const $ = cheerio.load(response.data);
 
-        // Extract meta title
+        // Extract meta title and image
         const title = $('meta[property="og:title"]').attr('content') || $('title').text();
-
-        // Extract meta image (thumbnail)
         const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content');
 
         return {
@@ -33,6 +32,13 @@ const fetchMetadata = async (url) => {
             image: image || 'No image found'
         };
     } catch (error) {
+        if (error.response && error.response.status === 429 && retries > 0) {
+            // If we get a 429 error, retry after waiting for a few seconds
+            console.log('Rate limit exceeded. Retrying...');
+            await delay(5000); // Wait 5 seconds before retrying
+            return fetchMetadata(url, retries - 1);  // Retry the request
+        }
+
         console.error('Error fetching metadata:', error);
         return {
             title: 'Error fetching title',
@@ -40,6 +46,7 @@ const fetchMetadata = async (url) => {
         };
     }
 };
+
 
 // Route to handle requests for each slug
 app.get('/:slug', async (req, res) => {
