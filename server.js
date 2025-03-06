@@ -1,8 +1,14 @@
+// Replace the 'require' statement with a dynamic import for node-fetch
 const express = require('express');
 const geoip = require('geoip-lite');
-const fetch = require('node-fetch'); // Import the node-fetch module to use fetch in Node.js
 const cheerio = require('cheerio');
 const app = express();
+
+// Use dynamic import() for node-fetch
+let fetch;
+(async () => {
+    fetch = (await import('node-fetch')).default;
+})();
 
 const slugToUrlMapping = {
     'example': 'https://example.com',
