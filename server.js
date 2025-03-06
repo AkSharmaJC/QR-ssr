@@ -1,55 +1,73 @@
 const express = require('express');
 const geoip = require('geoip-lite');
-const puppeteer = require('puppeteer');
-
+const axios = require('axios');
+const cheerio = require('cheerio');
 const app = express();
 
+// Slug-to-URL mapping
 const slugToUrlMapping = {
     'example': 'https://example.com',
     'google': 'https://www.google.com',
 };
 
+// Function to fetch metadata from a URL (title and image)
 const fetchMetadata = async (url) => {
     try {
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        await page.goto(url, { waitUntil: 'domcontentloaded' });
-
-        const metadata = await page.evaluate(() => {
-            const title = document.querySelector('meta[property="og:title"]')?.content || document.title;
-            const image = document.querySelector('meta[property="og:image"]')?.content || null;
-            return { title, image };
+        // Make the HTTP request to the URL
+        const response = await axios.get(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+            },
         });
 
-        await browser.close();
-        return metadata;
+        const $ = cheerio.load(response.data);
+
+        // Extract meta title
+        const title = $('meta[property="og:title"]').attr('content') || $('title').text();
+
+        // Extract meta image (thumbnail)
+        const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content');
+
+        return {
+            title: title || 'No title found',
+            image: image || 'No image found'
+        };
     } catch (error) {
-        console.error('Error fetching metadata using Puppeteer:', error);
-        return { title: 'Error fetching title', image: null };
+        console.error('Error fetching metadata:', error);
+        return {
+            title: 'Error fetching title',
+            image: null
+        };
     }
 };
 
+// Route to handle requests for each slug
 app.get('/:slug', async (req, res) => {
     try {
         const slug = req.params.slug;
 
+        // Get IP address from request headers
         const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).split(',')[0];
         console.log(ip, "klklklk");
 
+        // Lookup geolocation data
         const geoData = geoip.lookup(ip);
 
         if (!geoData) {
             return res.status(404).json({ error: 'Geolocation data not found' });
         }
 
+        // Get the URL associated with the slug
         const url = slugToUrlMapping[slug];
 
         if (!url) {
             return res.status(404).json({ error: 'URL not found for the slug' });
         }
 
+        // Fetch metadata (title and thumbnail image)
         const metadata = await fetchMetadata(url);
 
+        // Return the JSON response
         res.json({
             ip: ip,
             country: geoData.country || null,
@@ -60,7 +78,7 @@ app.get('/:slug', async (req, res) => {
             timezone: geoData.timezone || null,
             continent: geoData.continent || null,
             url: url,
-            title: metadata.title,
+            title: metadata.title,  // Include the meta title
             thumbnail: metadata.image,  // Include the meta image (thumbnail)
         });
     } catch (error) {
