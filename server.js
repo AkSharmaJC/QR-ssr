@@ -44,6 +44,8 @@ app.get('/:slug', async (req, res) => {
     try {
         const slug = req.params.slug;
 
+        console.log(slug,"jkljkljk")
+
         const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).split(',')[0];
         console.log(ip, "klklklk");
 
@@ -60,6 +62,8 @@ app.get('/:slug', async (req, res) => {
         }
 
         const metadata = await fetchMetadata(url);
+
+        console.log(metadata,"metadatametadata")
 
         res.json({
             ip: ip,
