@@ -14,9 +14,12 @@ const slugToUrlMapping = {
 };
 
 const fetchMetadata = async (url) => {
+    console.log(url,"111111")
     try {
         // Fetch metadata using url-metadata
-        const metadata = await urlMetadata(url);
+        const metadata = await urlMetadata(url).then((data)=>{
+            console.log(data,"000000")
+        });
 
         console.log(metadata,"lklklklklkl")
 
