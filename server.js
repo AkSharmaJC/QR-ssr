@@ -30,7 +30,7 @@ const fetchMetadata = async (url) => {
         }
 
         // Extract metadata from the response
-        const $ = cheerio.load(data);
+        const $ = cheerio.load(data?.data);
         const title = $('meta[property="og:title"]').attr('content') || $('meta[name="twitter:title"]').attr('content') || $('title').text() || 'No title found';
         const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || 'No image found';
 
