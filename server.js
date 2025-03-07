@@ -22,7 +22,7 @@ const fetchMetadata = async (url) => {
             },
         });
 
-        console.log(data,"--------------------")
+        console.log(data?.data,"--------------------")
 
         if (data.status === 429) {
             console.error('Rate limit exceeded. Please try again later.');
