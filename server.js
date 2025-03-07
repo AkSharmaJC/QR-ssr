@@ -11,22 +11,20 @@ const slugToUrlMapping = {
 
 const fetchMetadata = async (url) => {
     try {
-        // Fetch HTML content of the page
-        const { data } = await axios.get(url, {
+        const response = await axios.get(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
             },
         });
 
-        console.log(data,"opopoppop")
+        if (response.status === 429) {
+            console.error('Rate limit exceeded. Please try again later.');
+            return { title: 'Error fetching title', image: null };
+        }
 
-        // Load the HTML content into cheerio
-        const $ = cheerio.load(data);
-
-        // Extract title from meta tags or <title> tag
+        // Extract metadata from the response
+        const $ = cheerio.load(response.data);
         const title = $('meta[property="og:title"]').attr('content') || $('meta[name="twitter:title"]').attr('content') || $('title').text() || 'No title found';
-
-        // Extract image from meta tags
         const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || 'No image found';
 
         return { title, image };
@@ -35,6 +33,7 @@ const fetchMetadata = async (url) => {
         return { title: 'Error fetching title', image: null };
     }
 };
+
 
 app.get('/:slug', async (req, res) => {
     try {
