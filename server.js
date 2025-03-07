@@ -12,14 +12,11 @@ const slugToUrlMapping = {
 // Function to scrape metadata from the URL
 const fetchMetadata = async (url) => {
     try {
-        // Fetch HTML content from the URL using axios with headers to simulate a real browser
-        const { data } = await axios.get(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-            },
+        await axios.get(url).then((data)=>{
+            console.log(data,"opopoppopop")
         });
 
-        console.log(data,"opoppopopo")
+        // console.log(data,"opoppopopo")
         
         // Load HTML into cheerio
         // const $ = cheerio.load(data);
