@@ -6,12 +6,10 @@ const cheerio = require('cheerio');
 const app = express();
 const PORT = 6008;
 
-// In-memory store for short URLs (you can use a database like MongoDB for production)
 const urlDatabase = {};
 
 app.use(express.json());
 
-// Route to create a short URL
 app.post('/shorten', async (req, res) => {
   const { originalUrl } = req.body;
 
@@ -21,7 +19,7 @@ app.post('/shorten', async (req, res) => {
 
   // Generate a short URL ID
   const shortUrlId = shortid.generate();
-  const shortUrl = `http://localhost:${PORT}/${shortUrlId}`;
+  const shortUrl = `http://195.35.8.196:6008/${PORT}/${shortUrlId}`;
 
   // Store original URL in the database (in-memory in this case)
   urlDatabase[shortUrlId] = originalUrl;
