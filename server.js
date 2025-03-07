@@ -1,98 +1,70 @@
 const express = require('express');
-const geoip = require('geoip-lite');
+const shortid = require('shortid');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const puppeteer = require('puppeteer'); // Import Puppeteer
+
 const app = express();
+const PORT = 6008;
 
-const slugToUrlMapping = {
-    'example': 'https://example.com',
-    'google': 'https://www.google.com/',
-};
+// In-memory store for short URLs (you can use a database like MongoDB for production)
+const urlDatabase = {};
 
-const fetchMetadata = async (url) => {
-    try {
-        // Launch Puppeteer with --no-sandbox flag
-        const browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox'], // Add these args
-        });
-        const page = await browser.newPage();
-        await page.goto(url, { waitUntil: 'domcontentloaded' });
+app.use(express.json());
 
-        // Extract metadata from the page
-        const metadata = await page.evaluate(() => {
-            const title = document.querySelector('meta[property="og:title"]')?.content || document.title || 'No title found';
-            const image = document.querySelector('meta[property="og:image"]')?.content || 'No image found';
-            return { title, image };
-        });
+// Route to create a short URL
+app.post('/shorten', async (req, res) => {
+  const { originalUrl } = req.body;
 
-        await browser.close();
-        return metadata;
-    } catch (error) {
-        console.error('Error fetching metadata:', error.message);
-        return { title: 'Error fetching title', image: null };
-    }
-};
+  if (!originalUrl) {
+    return res.status(400).json({ message: 'Original URL is required.' });
+  }
 
-app.get('/:slug', async (req, res) => {
-    try {
-        const slug = req.params.slug;
+  // Generate a short URL ID
+  const shortUrlId = shortid.generate();
+  const shortUrl = `http://localhost:${PORT}/${shortUrlId}`;
 
-        const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).split(',')[0];
-        const geoData = geoip.lookup(ip);
+  // Store original URL in the database (in-memory in this case)
+  urlDatabase[shortUrlId] = originalUrl;
 
-        if (!geoData) {
-            return res.status(404).json({ error: 'Geolocation data not found' });
-        }
-
-        const url = slugToUrlMapping[slug];
-
-        if (!url) {
-            return res.status(404).json({ error: 'URL not found for the slug' });
-        }
-
-        // Fetch metadata for the URL using Puppeteer
-        const metadata = await fetchMetadata(url);
-
-        // Serve HTML with meta tags for Open Graph and Twitter Cards
-        res.send(`
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${metadata.title}</title>
-
-                <!-- Open Graph Meta Tags -->
-                <meta property="og:title" content="${metadata.title}">
-                <meta property="og:image" content="${metadata.image}">
-                <meta property="og:url" content="${url}">
-                <meta property="og:type" content="website">
-
-                <!-- Twitter Card Meta Tags -->
-                <meta name="twitter:title" content="${metadata.title}">
-                <meta name="twitter:image" content="${metadata.image}">
-                <meta name="twitter:card" content="summary_large_image">
-                <meta name="twitter:site" content="@yourtwitterhandle">
-
-                <!-- Additional meta tags for better SEO -->
-                <meta name="description" content="Description of the page">
-            </head>
-            <body>
-                <h1>${metadata.title}</h1>
-                <img src="${metadata.image}" alt="Thumbnail Image" style="width: 100%; max-width: 500px;">
-                <p>Visit the website: <a href="${url}">${url}</a></p>
-            </body>
-            </html>
-        `);
-    } catch (error) {
-        console.error('Error fetching geolocation data:', error);
-        res.status(500).json({ error: 'Failed to load geolocation data' });
-    }
+  // Fetch preview info of the original URL
+  try {
+    const preview = await getPreview(originalUrl);
+    res.status(201).json({ shortUrl, preview });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching URL preview.' });
+  }
 });
 
-// Start the server
-const port = 6008;
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+// Route to redirect to the original URL
+app.get('/:shortUrlId', (req, res) => {
+  const { shortUrlId } = req.params;
+
+  // Lookup the original URL
+  const originalUrl = urlDatabase[shortUrlId];
+
+  if (originalUrl) {
+    res.redirect(originalUrl);
+  } else {
+    res.status(404).send('Short URL not found.');
+  }
+});
+
+// Helper function to fetch metadata (preview) of the URL
+async function getPreview(url) {
+  try {
+    const response = await axios.get(url);
+    const $ = cheerio.load(response.data);
+
+    const title = $('head title').text();
+    const description = $('meta[name="description"]').attr('content');
+    const image = $('meta[property="og:image"]').attr('content');
+
+    return { title, description, image };
+  } catch (error) {
+    throw new Error('Error fetching URL preview');
+  }
+}
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
