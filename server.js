@@ -14,14 +14,10 @@ const slugToUrlMapping = {
 };
 
 const fetchMetadata = async (url) => {
-    console.log(url,"111111")
     try {
-        // Fetch metadata using url-metadata
-        const metadata = await urlMetadata(url).then((data)=>{
-            console.log(data,"000000")
-        });
+        const metadata = await urlMetadata(url); // Use await here to resolve the promise
 
-        console.log(metadata,"lklklklklkl")
+        console.log(metadata, "Fetched Metadata");
 
         // Extract title and image from metadata
         const title = metadata.ogTitle || metadata.title || 'No title found';
@@ -44,10 +40,10 @@ app.get('/:slug', async (req, res) => {
     try {
         const slug = req.params.slug;
 
-        console.log(slug,"jkljkljk")
+        console.log(slug, "Slug received");
 
         const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).split(',')[0];
-        console.log(ip, "klklklk");
+        console.log(ip, "IP Address");
 
         const geoData = geoip.lookup(ip);
 
@@ -63,7 +59,7 @@ app.get('/:slug', async (req, res) => {
 
         const metadata = await fetchMetadata(url);
 
-        console.log(metadata,"metadatametadata")
+        console.log(metadata, "Metadata");
 
         res.json({
             ip: ip,
