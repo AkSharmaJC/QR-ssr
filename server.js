@@ -11,19 +11,26 @@ const slugToUrlMapping = {
 
 const fetchMetadata = async (url) => {
     try {
-        const response = await axios.get(url, {
+        const data = await axios.get(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Referer': 'https://www.google.com',
+                'Upgrade-Insecure-Requests': '1',
             },
         });
 
-        if (response.status === 429) {
+        console.log(data,"--------------------")
+
+        if (data.status === 429) {
             console.error('Rate limit exceeded. Please try again later.');
             return { title: 'Error fetching title', image: null };
         }
 
         // Extract metadata from the response
-        const $ = cheerio.load(response.data);
+        const $ = cheerio.load(data);
         const title = $('meta[property="og:title"]').attr('content') || $('meta[name="twitter:title"]').attr('content') || $('title').text() || 'No title found';
         const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || 'No image found';
 
