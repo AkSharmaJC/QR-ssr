@@ -1,12 +1,8 @@
 const express = require('express');
 const geoip = require('geoip-lite');
-const urlMetadata = require('url-metadata');
+const axios = require('axios');
+const cheerio = require('cheerio');
 const app = express();
-
-let fetch;
-(async () => {
-    fetch = (await import('node-fetch')).default;
-})();
 
 const slugToUrlMapping = {
     'example': 'https://example.com',
@@ -15,13 +11,12 @@ const slugToUrlMapping = {
 
 const fetchMetadata = async (url) => {
     try {
-        const metadata = await urlMetadata(url); // Use await here to resolve the promise
+        const { data } = await axios.get(url);
+        
+        const $ = cheerio.load(data);
 
-        console.log(metadata, "Fetched Metadata");
-
-        // Extract title and image from metadata
-        const title = metadata.ogTitle || metadata.title || 'No title found';
-        const image = metadata.ogImage || metadata.twitterImage || 'No image found';
+        const title = $('meta[property="og:title"]').attr('content') || $('title').text() || 'No title found';
+        const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || 'No image found';
 
         return {
             title,
