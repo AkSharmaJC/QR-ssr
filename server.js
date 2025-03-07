@@ -22,8 +22,6 @@ const fetchMetadata = async (url) => {
             },
         });
 
-        console.log(data?.data,"--------------------")
-
         if (data.status === 429) {
             console.error('Rate limit exceeded. Please try again later.');
             return { title: 'Error fetching title', image: null };
@@ -41,15 +39,11 @@ const fetchMetadata = async (url) => {
     }
 };
 
-
 app.get('/:slug', async (req, res) => {
     try {
         const slug = req.params.slug;
 
-        console.log(slug, "Slug received");
-
         const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).split(',')[0];
-        console.log(ip, "IP Address");
 
         const geoData = geoip.lookup(ip);
 
@@ -65,21 +59,33 @@ app.get('/:slug', async (req, res) => {
 
         const metadata = await fetchMetadata(url);
 
-        console.log(metadata, "Metadata");
+        // Serve HTML with meta tags
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${metadata.title}</title>
 
-        res.json({
-            ip: ip,
-            country: geoData.country || null,
-            country_name: geoData.country_name || null,
-            city: geoData.city || null,
-            latitude: geoData.ll ? geoData.ll[0] : null,
-            longitude: geoData.ll ? geoData.ll[1] : null,
-            timezone: geoData.timezone || null,
-            continent: geoData.continent || null,
-            url: url,
-            title: metadata.title,  // Include the meta title
-            thumbnail: metadata.image,  // Include the meta image (thumbnail)
-        });
+                <!-- Open Graph Meta Tags -->
+                <meta property="og:title" content="${metadata.title}">
+                <meta property="og:image" content="${metadata.image}">
+                <meta property="og:url" content="${url}">
+                <meta property="og:type" content="website">
+
+                <!-- Twitter Card Meta Tags -->
+                <meta name="twitter:title" content="${metadata.title}">
+                <meta name="twitter:image" content="${metadata.image}">
+                <meta name="twitter:card" content="summary_large_image">
+            </head>
+            <body>
+                <h1>${metadata.title}</h1>
+                <img src="${metadata.image}" alt="Thumbnail Image">
+                <p>Visit the website: <a href="${url}">${url}</a></p>
+            </body>
+            </html>
+        `);
     } catch (error) {
         console.error('Error fetching geolocation data:', error);
         res.status(500).json({ error: 'Failed to load geolocation data' });
