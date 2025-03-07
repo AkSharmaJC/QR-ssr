@@ -12,8 +12,10 @@ const slugToUrlMapping = {
 
 const fetchMetadata = async (url) => {
     try {
-        // Launch Puppeteer to load the page and fetch metadata
-        const browser = await puppeteer.launch();
+        // Launch Puppeteer with --no-sandbox flag
+        const browser = await puppeteer.launch({
+            args: ['--no-sandbox', '--disable-setuid-sandbox'], // Add these args
+        });
         const page = await browser.newPage();
         await page.goto(url, { waitUntil: 'domcontentloaded' });
 
