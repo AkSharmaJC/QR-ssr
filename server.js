@@ -9,13 +9,21 @@ const slugToUrlMapping = {
     'google': 'https://www.google.com',
 };
 
+// Function to scrape metadata from the URL
 const fetchMetadata = async (url) => {
     try {
-        const { data } = await axios.get(url);
+        // Fetch HTML content from the URL using axios with headers to simulate a real browser
+        const { data } = await axios.get(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+            },
+        });
         
+        // Load HTML into cheerio
         const $ = cheerio.load(data);
 
-        const title = $('meta[property="og:title"]').attr('content') || $('title').text() || 'No title found';
+        // Extract metadata
+        const title = $('meta[property="og:title"]').attr('content') || $('meta[name="twitter:title"]').attr('content') || $('title').text() || 'No title found';
         const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || 'No image found';
 
         return {
@@ -23,7 +31,7 @@ const fetchMetadata = async (url) => {
             image
         };
     } catch (error) {
-        console.error('Error fetching metadata:', error);
+        console.error('Error fetching metadata:', error.message);
         return {
             title: 'Error fetching title',
             image: null
