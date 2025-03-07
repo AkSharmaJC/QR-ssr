@@ -6,7 +6,7 @@ const app = express();
 
 const slugToUrlMapping = {
     'example': 'https://example.com',
-    'google': 'https://www.google.com',
+    'google': 'https://beta.moddedgames.com/',
 };
 
 const fetchMetadata = async (url) => {
