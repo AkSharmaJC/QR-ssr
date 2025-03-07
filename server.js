@@ -9,32 +9,30 @@ const slugToUrlMapping = {
     'google': 'https://www.google.com',
 };
 
-// Function to scrape metadata from the URL
 const fetchMetadata = async (url) => {
     try {
-        await axios.get(url).then((data)=>{
-            console.log(data,"opopoppopop")
+        // Fetch HTML content of the page
+        const { data } = await axios.get(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+            },
         });
 
-        // console.log(data,"opoppopopo")
-        
-        // Load HTML into cheerio
-        // const $ = cheerio.load(data);
+        console.log(data,"opopoppop")
 
-        // Extract metadata
+        // Load the HTML content into cheerio
+        const $ = cheerio.load(data);
+
+        // Extract title from meta tags or <title> tag
         const title = $('meta[property="og:title"]').attr('content') || $('meta[name="twitter:title"]').attr('content') || $('title').text() || 'No title found';
+
+        // Extract image from meta tags
         const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || 'No image found';
 
-        return {
-            title,
-            image
-        };
+        return { title, image };
     } catch (error) {
         console.error('Error fetching metadata:', error.message);
-        return {
-            title: 'Error fetching title',
-            image: null
-        };
+        return { title: 'Error fetching title', image: null };
     }
 };
 
