@@ -18,9 +18,11 @@ const fetchMetadata = async (url) => {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
             },
         });
+
+        console.log(data,"opoppopopo")
         
         // Load HTML into cheerio
-        const $ = cheerio.load(data);
+        // const $ = cheerio.load(data);
 
         // Extract metadata
         const title = $('meta[property="og:title"]').attr('content') || $('meta[name="twitter:title"]').attr('content') || $('title').text() || 'No title found';
