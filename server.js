@@ -2,6 +2,7 @@ const express = require('express');
 const geoip = require('geoip-lite');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const puppeteer = require('puppeteer'); // Import Puppeteer
 const app = express();
 
 const slugToUrlMapping = {
@@ -11,28 +12,20 @@ const slugToUrlMapping = {
 
 const fetchMetadata = async (url) => {
     try {
-        const data = await axios.get(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Referer': 'https://www.google.com',
-                'Upgrade-Insecure-Requests': '1',
-            },
+        // Launch Puppeteer to load the page and fetch metadata
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+        // Extract metadata from the page
+        const metadata = await page.evaluate(() => {
+            const title = document.querySelector('meta[property="og:title"]')?.content || document.title || 'No title found';
+            const image = document.querySelector('meta[property="og:image"]')?.content || 'No image found';
+            return { title, image };
         });
 
-        if (data.status === 429) {
-            console.error('Rate limit exceeded. Please try again later.');
-            return { title: 'Error fetching title', image: null };
-        }
-
-        // Extract metadata from the response
-        const $ = cheerio.load(data?.data);
-        const title = $('meta[property="og:title"]').attr('content') || $('meta[name="twitter:title"]').attr('content') || $('title').text() || 'No title found';
-        const image = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || 'No image found';
-
-        return { title, image };
+        await browser.close();
+        return metadata;
     } catch (error) {
         console.error('Error fetching metadata:', error.message);
         return { title: 'Error fetching title', image: null };
@@ -44,7 +37,6 @@ app.get('/:slug', async (req, res) => {
         const slug = req.params.slug;
 
         const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).split(',')[0];
-
         const geoData = geoip.lookup(ip);
 
         if (!geoData) {
@@ -57,6 +49,7 @@ app.get('/:slug', async (req, res) => {
             return res.status(404).json({ error: 'URL not found for the slug' });
         }
 
+        // Fetch metadata for the URL using Puppeteer
         const metadata = await fetchMetadata(url);
 
         // Serve HTML with meta tags for Open Graph and Twitter Cards
