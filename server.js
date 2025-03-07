@@ -59,7 +59,7 @@ app.get('/:slug', async (req, res) => {
 
         const metadata = await fetchMetadata(url);
 
-        // Serve HTML with meta tags
+        // Serve HTML with meta tags for Open Graph and Twitter Cards
         res.send(`
             <!DOCTYPE html>
             <html lang="en">
@@ -78,10 +78,14 @@ app.get('/:slug', async (req, res) => {
                 <meta name="twitter:title" content="${metadata.title}">
                 <meta name="twitter:image" content="${metadata.image}">
                 <meta name="twitter:card" content="summary_large_image">
+                <meta name="twitter:site" content="@yourtwitterhandle">
+
+                <!-- Additional meta tags for better SEO -->
+                <meta name="description" content="Description of the page">
             </head>
             <body>
                 <h1>${metadata.title}</h1>
-                <img src="${metadata.image}" alt="Thumbnail Image">
+                <img src="${metadata.image}" alt="Thumbnail Image" style="width: 100%; max-width: 500px;">
                 <p>Visit the website: <a href="${url}">${url}</a></p>
             </body>
             </html>
